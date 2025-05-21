@@ -1,0 +1,583 @@
+<div id="terminal" class="bg-[#300a24] rounded-lg overflow-hidden shadow-2xl transition-all duration-300 ease-in-out w-[800px] max-w-full">
+  <!-- Terminal header -->
+  <div class="bg-[#3c3c3c] px-4 py-2 flex justify-between items-center">
+    <div class="flex gap-2">
+      <div class="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
+      <div class="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
+      <div class="w-3 h-3 rounded-full bg-[#27c93f]"></div>
+    </div>
+    <div class="text-sm text-[#d9d9d9]">roman@belxz-resume:~</div>
+    <div class="flex gap-2">
+      <button id="expand-button" class="bg-transparent border-none text-[#d9d9d9] cursor-pointer p-0 flex items-center justify-center hover:text-white focus:outline-none">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <polyline points="15 3 21 3 21 9"></polyline>
+          <polyline points="9 21 3 21 3 15"></polyline>
+          <line x1="21" y1="3" x2="14" y2="10"></line>
+          <line x1="3" y1="21" x2="10" y2="14"></line>
+        </svg>
+      </button>
+      <button class="bg-transparent border-none text-[#d9d9d9] cursor-pointer p-0 flex items-center justify-center hover:text-white focus:outline-none">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Terminal content -->
+  <div id="terminal-content" class="p-4 overflow-auto whitespace-pre-wrap transition-height duration-300 ease-in-out font-mono text-[#e0e0e0]">
+    <!-- Terminal output will be inserted here by JavaScript -->
+  </div>
+
+  <!-- Resize handle -->
+  <div id="resize-handle" class="h-2 bg-[#3c3c3c] cursor-ns-resize flex items-center justify-center">
+    <div class="w-16 h-1 bg-[#666] rounded-full transition-colors duration-200 ease-in-out hover:bg-[#999]"></div>
+  </div>
+</div>
+
+<script>
+  // Resume data with emojis
+  const resumeData = {
+    personalInfo: {
+      name: "Roman Belxz",
+      phone: "8 982 124 97 32",
+      email: "belxz888@gmail.com",
+      telegram: "@telegram:belxz999",
+      birthDate: "18.08.2007",
+    },
+    education: [
+      {
+        period: "2014 – 2023",
+        institution: "🎓 МБОУ СОШ №100",
+      },
+      {
+        period: "2024 – 2025",
+        institution: "🚀 ЧОУ ДПО «Академия «Калашников»",
+        program: "📚 Дополнительная образовательная программа «Аэро. Углубленный курс»",
+      },
+    ],
+    workExperience: [
+      {
+        period: "2024",
+        position: "🔧 Слесарь механосборочных работ",
+        company: "______________",
+      },
+    ],
+    skills: {
+      highLevel: [
+        { name: "💻 Javascript (typescript)", level: 90 },
+        { name: "🐍 Python", level: 80 },
+        { name: "🎯 Dart", level: 70 },
+        { name: "🤖 Kotlin", level: 60 },
+      ],
+      lowLevel: [{ name: "⚙️ C++", level: 65 }],
+      tools: [
+        "🐳 Docker(docker hub)",
+        "🌿 Git (github,gitverse)",
+        "📮 Postman",
+        "⚙️ Jenkins",
+        "📱 Android studio sdk devices service",
+      ],
+      ide: ["👨‍💻 Vs code", "🤖 android studio", "🖥️ vs 2019"],
+      other: ["💻 unix терминалы", "📮 postman", "🐳 docker", "🌐 nginx", "⚡ github actions (ci cd)"],
+      office: ["📊 Microsoft Access", "📝 Word", "📈 Excel", "📊 PowerPoint"],
+    },
+    achievements: [
+      "🏆 2024 г. сертификат о первом месте в хакатоне ТехноСтрелка в номинации веб технологии",
+      "📜 2024 г. благодарственное письмо от Концерна Калашников",
+    ],
+    hobbies: ["🚴 велоспорт", "💻 программирование"],
+    personalQualities: ["👥 умение работать в команде", "💬 коммуникабельность", "📖 обучаемость", "🎯 целеустремленность"],
+  };
+
+  // Terminal state
+  interface TerminalState {
+    isLoaded: boolean;
+    loginStep: number;
+    password: string;
+    showPassword: boolean;
+    currentCommand: string;
+    commandHistory: string[];
+    terminalOutput: string[];
+    cursorVisible: boolean;
+    expanded: boolean;
+    terminalHeight: number;
+    isResizing: boolean;
+    resizeStartY: number;
+    initialHeight: number;
+    isBooting: boolean;
+    bootProgress: number;
+  }
+
+  let state: TerminalState = {
+    isLoaded: false,
+    loginStep: 1   ,
+    password: "",
+    showPassword: false,
+    currentCommand: "",
+    commandHistory: [],
+    terminalOutput: [],
+    cursorVisible: true,
+    expanded: false,
+    terminalHeight: 500,
+    isResizing: false,
+    resizeStartY: 0,
+    initialHeight: 0,
+    isBooting: false,
+    bootProgress: 0,
+  };
+
+  // DOM elements with null checks
+  const terminal = document.getElementById("terminal") as HTMLDivElement;
+  const terminalContent = document.getElementById("terminal-content") as HTMLDivElement;
+  const expandButton = document.getElementById("expand-button") as HTMLButtonElement;
+  const resizeHandle = document.getElementById("resize-handle") as HTMLDivElement;
+
+  if (!terminal || !terminalContent || !expandButton || !resizeHandle) {
+    console.error("Required DOM elements not found");
+    throw new Error("Required DOM elements not found");
+  }
+
+  // Commands with emojis
+  const commands = {
+    help: () => {
+        terminalContent.scrollTop = terminalContent.scrollHeight;
+      return [
+        "📝 Доступные команды:",
+        "  help           - Показать список команд",
+        "  clear          - 🧹 Очистить терминал",
+        "  info           - 👤 Основная информация",
+        "  education      - 🎓 Образование",
+        "  experience     - 💼 Опыт работы",
+        "  skills         - 🛠️ Навыки",
+        "  achievements   - 🏆 Достижения",
+        "  hobbies        - 🎨 Увлечения",
+        "  qualities      - 💪 Личностные качества",
+        "  all            - 📄 Показать все резюме",
+        "  exit           - 🚪 Выйти из системы",
+      ];
+    },
+    clear: () => {
+      state.terminalOutput = [];
+      renderTerminal();
+      return [];
+    },
+    info: () => {
+      const { personalInfo } = resumeData;
+      return [
+        "👤 === Персональная информация ===",
+        `📛 Имя:       ${personalInfo.name}`,
+        `📞 Телефон:   ${personalInfo.phone}`,
+        `📧 Email:     ${personalInfo.email}`,
+        `📱 Telegram:  ${personalInfo.telegram}`,
+        `🎂 Дата рождения: ${personalInfo.birthDate}`,
+        "",
+      ];
+    },
+    education: () => {
+      const { education } = resumeData;
+      const output = ["🎓 === Образование ==="];
+      education.forEach((edu) => {
+        output.push(`📅 ${edu.period} - ${edu.institution}`);
+        if (edu.program) {
+          output.push(`  📚 ${edu.program}`);
+        }
+      });
+      output.push("");
+      return output;
+    },
+    experience: () => {
+      const { workExperience } = resumeData;
+      const output = ["💼 === Опыт работы ==="];
+      workExperience.forEach((exp) => {
+        output.push(`📅 ${exp.period} - ${exp.position}`);
+        output.push(`  🏢 Компания: ${exp.company}`);
+      });
+      output.push("");
+      return output;
+    },
+    skills: () => {
+      const { skills } = resumeData;
+      const output = ["🛠️ === Навыки ===", "-- 💻 Высокоуровневые языки:"];
+      skills.highLevel.forEach((skill) => {
+        output.push(`  ${skill.name} - ${'▮'.repeat(Math.floor(skill.level/10))}${'▯'.repeat(10 - Math.floor(skill.level/10))} ${skill.level}%`);
+      });
+      output.push("-- ⚙️ Низкоуровневые языки:");
+      skills.lowLevel.forEach((skill) => {
+        output.push(`  ${skill.name} - ${'▮'.repeat(Math.floor(skill.level/10))}${'▯'.repeat(10 - Math.floor(skill.level/10))} ${skill.level}%`);
+      });
+      output.push("-- 🧰 Инструменты разработки:");
+      skills.tools.forEach((tool) => {
+        output.push(`  ${tool}`);
+      });
+      output.push("-- 🖥️ IDE и среды разработки:");
+      skills.ide.forEach((ide) => {
+        output.push(`  ${ide}`);
+      });
+      output.push("-- 🛠️ Другие инструменты:");
+      skills.other.forEach((other) => {
+        output.push(`  ${other}`);
+      });
+      output.push("-- 📊 Офисные программы:");
+      skills.office.forEach((office) => {
+        output.push(`  ${office}`);
+      });
+      output.push("");
+      return output;
+    },
+    achievements: () => {
+      const { achievements } = resumeData;
+      const output = ["🏆 === Достижения ==="];
+      achievements.forEach((achievement, index) => {
+        output.push(`${index + 1}. ${achievement}`);
+      });
+      output.push("");
+      return output;
+    },
+    hobbies: () => {
+      const { hobbies } = resumeData;
+      const output = ["🎨 === Увлечения ==="];
+      hobbies.forEach((hobby) => {
+        output.push(`- ${hobby}`);
+      });
+      output.push("");
+      return output;
+    },
+    qualities: () => {
+      const { personalQualities } = resumeData;
+      const output = ["💪 === Личностные качества ==="];
+      personalQualities.forEach((quality) => {
+        output.push(`- ${quality}`);
+      });
+      output.push("");
+      return output;
+    },
+    all: () => {
+      return [
+        ...commands.info(),
+        ...commands.education(),
+        ...commands.experience(),
+        ...commands.skills(),
+        ...commands.achievements(),
+        ...commands.hobbies(),
+        ...commands.qualities(),
+      ];
+    },
+    exit: () => {
+      setTimeout(() => {
+        state.loginStep = 0;
+        state.password = "";
+        state.terminalOutput = [];
+        state.commandHistory = [];
+        renderTerminal();
+      }, 1000);
+      return ["🚪 Выход из системы...", ""];
+    },
+    default: (cmd:any) => {
+      return [`❌ Команда не найдена: ${cmd}`, "ℹ️ Введите 'help' для списка доступных команд", ""];
+    },
+  };
+
+  // Render terminal output
+function renderTerminal() {
+  // Сохраняем текущую позицию скролла
+  const wasScrolledToBottom = isScrolledToBottom();
+  
+  // Clear terminal content
+  terminalContent.innerHTML = "";
+  
+  state.terminalOutput.forEach((line) => {
+    const lineElement = document.createElement("div");
+    lineElement.className = "leading-tight animate-fadeIn";
+    lineElement.textContent = line;
+    terminalContent.appendChild(lineElement);
+  });
+
+  const inputLine = document.createElement("div");
+  inputLine.className = "inline-flex items-center";
+  
+  const prompt = document.createElement("span");
+  const welcomeText = [
+    `🌈 Добро пожаловать в мое портфолио`,
+    ``,
+    `📚 * Документация:  https://help.ubuntu.com`,
+    `⚙️ * Управление:     https://landscape.canonical.com`,
+    `🛡️ * Поддержка:        https://ubuntu.com/pro`,
+    ``,
+    `📊 Информация о системе на ${new Date().toLocaleString()}`,
+    ``,
+    `📊 Загрузка системы:  0.00                Процессы:             133`,
+    `💾 Использование /:   85.1% of 14.68GB    Пользователи:       1`,
+    `🧠 Использование памяти: 55%                 IP адрес: 81.200.158.11`,
+    `🔄 Использование swap:   0%`,
+    ``,
+    `⚠️ => / использует 85.1% из 14.68GB`,
+    ``,
+    `🎉 * Резюме Roman Belxz загружено и готово к просмотру.`,
+    `ℹ️ * Введите 'help' для списка доступных команд.`,
+    ``,
+    `⏱️ Последний вход: ${new Date().toLocaleString()} с ${Math.floor(Math.random() * 255)}.${Math.floor(
+      Math.random() * 255,
+    )}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`
+  ];
+
+  if (state.terminalOutput.length === 0) {
+    state.terminalOutput = welcomeText;
+    state.isLoaded = true;
+  }
+  
+  if (state.isLoaded) {
+    prompt.textContent = "roman@belxz-resume:~$ ";
+    prompt.className = "text-[#4CAF50]";
+    inputLine.appendChild(prompt);
+  }
+
+  const command = document.createElement("span");
+  command.textContent = state.currentCommand;
+  inputLine.appendChild(command);
+  
+  if (state.cursorVisible) {
+    const cursor = document.createElement("span");
+    cursor.className = "inline-block w-2 h-5 bg-white ml-0.5";
+    inputLine.appendChild(cursor);
+  }
+  
+  terminalContent.appendChild(inputLine);
+  
+  // Прокручиваем вниз только если пользователь уже был внизу или это новый вывод
+  if (wasScrolledToBottom) {
+    terminalContent.scrollTop = terminalContent.scrollHeight;
+  }
+}
+
+// Проверяем, находится ли пользователь внизу терминала
+function isScrolledToBottom() {
+  const threshold = 10; // Небольшой допуск
+  return terminalContent.scrollHeight - terminalContent.scrollTop - terminalContent.clientHeight <= threshold;
+}
+  // Simulate system boot
+
+
+  // Handle key press
+  function handleKeyPress(e:any) {
+    if (state.isBooting) return;
+    
+    if (state.loginStep < 0) {
+      if (e.key === "Enter") {
+    if (state.loginStep === 1) {
+         
+        }
+      } else if (e.key === "Backspace") {
+        state.password = state.password.slice(0, -1);
+      } else if (e.key.length === 1) {
+        state.password += e.key;
+      }
+    } else {
+      if (e.key === "Enter") {
+        const cmd = state.currentCommand.trim().toLowerCase();
+        state.commandHistory.push(cmd);
+        state.terminalOutput.push(`roman@belxz-resume:~$ ${state.currentCommand}`);
+
+        if (cmd in commands && typeof commands[cmd as keyof typeof commands] === 'function') {
+          const output = (commands[cmd as keyof typeof commands] as Function)(cmd);
+          state.terminalOutput = [...state.terminalOutput, ...output];
+        } else if (cmd) {
+          state.terminalOutput = [...state.terminalOutput, ...commands.default(cmd)];
+        } else {
+          state.terminalOutput.push(`roman@belxz-resume:~$ `);
+        }
+
+        state.currentCommand = "";
+      } else if (e.key === "Backspace") {
+        state.currentCommand = state.currentCommand.slice(0, -1);
+      } else if (e.key === " " && state.terminalOutput.some((line) => line.includes("[Space]"))) {
+        // Handle space bar for pagination
+        state.terminalOutput = state.terminalOutput.filter((line) => !line.includes("[Space]"));
+      } else if (e.key.length === 1) {
+        state.currentCommand += e.key;
+      }
+    }
+
+    renderTerminal();
+  }
+
+  // Handle resize start
+  function handleResizeStart(e:any) {
+    e.preventDefault();
+    state.isResizing = true;
+    state.resizeStartY = e.clientY;
+    state.initialHeight = state.terminalHeight;
+  }
+
+  // Handle resize move
+  function handleResizeMove(e:any) {
+    if (!state.isResizing) return;
+
+    const deltaY = e.clientY - state.resizeStartY;
+    const newHeight = Math.max(200, state.initialHeight + deltaY); // Minimum height of 200px
+    state.terminalHeight = newHeight;
+    terminalContent.style.height = `${newHeight}px`;
+  }
+
+  // Handle resize end
+  function handleResizeEnd() {
+    state.isResizing = false;
+  }
+
+  // Toggle fullscreen
+  function toggleFullscreen() {
+    state.expanded = !state.expanded;
+    
+    if (state.expanded) {
+      terminal.classList.add("fixed", "top-0", "left-0", "w-full", "h-full", "rounded-none", "z-50");
+      resizeHandle.classList.add("hidden");
+      if (terminalContent) {
+        terminalContent.style.height = "calc(100vh - 40px)";
+      }
+      expandButton.innerHTML = `
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <polyline points="4 14 10 14 10 20"></polyline>
+          <polyline points="20 10 14 10 14 4"></polyline>
+          <line x1="14" y1="10" x2="21" y2="3"></line>
+          <line x1="3" y1="21" x2="10" y2="14"></line>
+        </svg>
+      `;
+    } else {
+      terminal.classList.remove("fixed", "top-0", "left-0", "w-full", "h-full", "rounded-none", "z-50");
+      resizeHandle.classList.remove("hidden");
+      if (terminalContent) {
+        terminalContent.style.height = `${state.terminalHeight}px`;
+      }
+      expandButton.innerHTML = `
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <polyline points="15 3 21 3 21 9"></polyline>
+          <polyline points="9 21 3 21 3 15"></polyline>
+          <line x1="21" y1="3" x2="14" y2="10"></line>
+          <line x1="3" y1="21" x2="10" y2="14"></line>
+        </svg>
+      `;
+    }
+  }
+
+  // Blinking cursor effect
+  function startCursorBlink() {
+    setInterval(() => {
+      state.cursorVisible = !state.cursorVisible;
+      renderTerminal();
+    }, 500);
+  }
+
+  // Initialize terminal
+  function initTerminal() {
+    state.isLoaded = true;
+    
+    // Set initial terminal height
+    terminalContent.style.height = `${state.terminalHeight}px`;
+    
+    // Add event listeners
+    document.addEventListener("keydown", handleKeyPress);
+    resizeHandle.addEventListener("mousedown", handleResizeStart);
+    document.addEventListener("mousemove", handleResizeMove);
+    document.addEventListener("mouseup", handleResizeEnd);
+    expandButton.addEventListener("click", toggleFullscreen);
+    
+    // Start cursor blinking
+    startCursorBlink();
+    
+    // Simulate system boot
+    // simulateBoot();
+  }
+
+  // Initialize when DOM is loaded
+  document.addEventListener("DOMContentLoaded", initTerminal);
+</script>
+
+<style>
+  /* Add fadeIn animation that's not available in standard Tailwind */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  .animate-fadeIn {
+    animation: fadeIn 0.2s ease-in-out;
+  }
+  
+  /* Custom scrollbar styles that are hard to do with Tailwind alone */
+  #terminal-content::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  #terminal-content::-webkit-scrollbar-track {
+    background: #300a24;
+  }
+
+  #terminal-content::-webkit-scrollbar-thumb {
+    background: #666;
+    border-radius: 4px;
+  }
+
+  #terminal-content::-webkit-scrollbar-thumb:hover {
+    background: #888;
+  }
+  
+  /* Pulse animation for boot process */
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+  
+  .animate-pulse {
+    animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+</style>
